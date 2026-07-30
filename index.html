@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tanya Dokumen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+<style>
+  :root{
+    --paper: #FBF7EF;
+    --paper-warm: #F3ECDD;
+    --card: #FFFFFF;
+    --ink: #2B2620;
+    --ink-soft: #6B6255;
+    --line: #E7DFCC;
+    --amber: #D99A2B;
+    --amber-deep: #B87F1C;
+    --slate: #5C6B7A;
+    --slate-soft: #EEF1F3;
+    --danger: #B4472F;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  /* subtle paper texture via layered radial gradients */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(217,154,43,0.05), transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(92,107,122,0.06), transparent 45%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  header{
+    position:relative;
+    z-index:1;
+    padding:18px 18px 14px;
+    background:var(--paper-warm);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand-mark{
+    width:34px;height:34px;
+    border-radius:8px;
+    background:linear-gradient(160deg, var(--amber), var(--amber-deep));
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-family:'Lora',serif;font-weight:700;font-size:16px;
+    flex-shrink:0;
+    box-shadow:0 2px 6px rgba(184,127,28,0.35);
+  }
+  .brand h1{
+    font-family:'Lora',serif;
+    font-size:19px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .brand p{
+    margin:0;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .keyrow{
+    margin-top:12px;
+    display:flex;
+    gap:8px;
+  }
+  .keyrow input{
+    flex:1;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    padding:9px 10px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+  }
+  .keyrow button{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    padding:9px 14px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .key-status{
+    font-size:11px;
+    margin-top:6px;
+    color:var(--ink-soft);
+  }
+  .key-status.ok{ color:#3E7D4E; }
+
+  main{
+    flex:1;
+    position:relative;
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+
+  /* upload state */
+  #upload-screen{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:32px 24px;
+    text-align:center;
+    gap:14px;
+  }
+  .drop-icon{
+    width:64px;height:82px;
+    border-radius:6px;
+    background:var(--card);
+    border:1.5px solid var(--line);
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 16px rgba(43,38,32,0.06);
+  }
+  .drop-icon::before{
+    content:"";
+    position:absolute;
+    top:10px;left:12px;right:12px;
+    height:2px;
+    background:var(--line);
+    box-shadow:0 8px 0 var(--line), 0 16px 0 var(--line), 0 24px 0 var(--line);
+  }
+  .drop-icon::after{
+    content:"PDF";
+    position:absolute;
+    bottom:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    font-weight:700;
+    color:var(--amber-deep);
+    letter-spacing:0.05em;
+  }
+  #upload-screen h2{
+    font-family:'Lora',serif;
+    font-size:20px;
+    margin:0;
+  }
+  #upload-screen p{
+    color:var(--ink-soft);
+    font-size:13.5px;
+    max-width:320px;
+    margin:0;
+    line-height:1.5;
+  }
+  .upload-btn{
+    margin-top:6px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:12px 24px;
+    border-radius:11px;
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+  }
+  .upload-btn:active{ transform:scale(0.98); }
+  #file-input{ display:none; }
+
+  #load-status{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    min-height:18px;
+  }
+
+  /* chat state */
+  #chat-screen{
+    display:none;
+    flex:1;
+    flex-direction:column;
+    min-height:0;
+  }
+  .doc-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 16px;
+    background:var(--card);
+    border-bottom:1px solid var(--line);
+    font-size:12.5px;
+  }
+  .doc-bar .doc-icon{
+    width:26px;height:26px;
+    border-radius:6px;
+    background:var(--slate-soft);
+    color:var(--slate);
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;
+    flex-shrink:0;
+  }
+  .doc-bar .doc-name{
+    flex:1;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-weight:600;
+  }
+  .doc-bar .doc-pages{
+    color:var(--ink-soft);
+    flex-shrink:0;
+  }
+  .doc-bar button{
+    background:none;
+    border:none;
+    color:var(--amber-deep);
+    font-size:12px;
+    font-weight:600;
+    flex-shrink:0;
+  }
+
+  #messages{
+    flex:1;
+    overflow-y:auto;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .msg{
+    max-width:86%;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .msg.user{ align-self:flex-end; align-items:flex-end; }
+  .msg.ai{ align-self:flex-start; align-items:flex-start; }
+  .bubble{
+    padding:11px 14px;
+    border-radius:16px;
+    font-size:14px;
+    line-height:1.55;
+  }
+  .msg.user .bubble{
+    background:var(--ink);
+    color:var(--paper);
+    border-bottom-right-radius:4px;
+  }
+  .msg.ai .bubble{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-bottom-left-radius:4px;
+  }
+  .msg.ai .bubble.error{
+    border-color:rgba(180,71,47,0.4);
+    background:rgba(180,71,47,0.06);
+    color:var(--danger);
+  }
+  .citations{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .citation-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    font-weight:600;
+    padding:3px 8px 3px 7px;
+    border-radius:4px 4px 4px 0;
+    background:linear-gradient(160deg, #F6D998, #EBBD5C);
+    color:#5C3D0A;
+    position:relative;
+    box-shadow:0 1px 2px rgba(0,0,0,0.08);
+  }
+  .thinking{
+    display:flex;
+    gap:4px;
+    padding:14px 14px;
+  }
+  .thinking span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--ink-soft);
+    opacity:0.4;
+    animation:blink 1.2s infinite ease-in-out;
+  }
+  .thinking span:nth-child(2){ animation-delay:0.15s; }
+  .thinking span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes blink{ 0%,80%,100%{ opacity:0.25; } 40%{ opacity:0.9; } }
+
+  #composer{
+    display:flex;
+    gap:8px;
+    padding:12px;
+    background:var(--paper-warm);
+    border-top:1px solid var(--line);
+  }
+  #composer textarea{
+    flex:1;
+    resize:none;
+    border-radius:14px;
+    border:1px solid var(--line);
+    padding:11px 14px;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    background:var(--card);
+    color:var(--ink);
+    max-height:96px;
+  }
+  #composer button{
+    width:44px;height:44px;
+    border-radius:12px;
+    border:none;
+    background:var(--amber-deep);
+    color:#fff;
+    font-size:16px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  #composer button:disabled{
+    background:var(--line);
+    color:var(--ink-soft);
+  }
+
+  ::-webkit-scrollbar{ width:5px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">T</div>
+    <div>
+      <h1>Tanya Dokumen</h1>
+      <p>Unggah PDF, tanya isinya, dapat jawaban + halaman sumber</p>
+    </div>
+  </div>
+  <div class="keyrow">
+    <input type="password" id="api-key-input" placeholder="Tempel API key Gemini di sini">
+    <button id="save-key-btn">Simpan</button>
+  </div>
+  <div class="key-status" id="key-status">Belum ada API key tersimpan.</div>
+</header>
+
+<main>
+  <div id="upload-screen">
+    <div class="drop-icon"></div>
+    <h2>Mulai dari satu dokumen</h2>
+    <p>Pilih file PDF, nanti kamu bisa tanya apa saja soal isinya dan setiap jawaban akan menyebut halaman sumbernya.</p>
+    <button class="upload-btn" id="upload-trigger">Pilih file PDF</button>
+    <input type="file" id="file-input" accept="application/pdf">
+    <div id="load-status"></div>
+  </div>
+
+  <div id="chat-screen">
+    <div class="doc-bar">
+      <div class="doc-icon">PDF</div>
+      <div class="doc-name" id="doc-name">dokumen.pdf</div>
+      <div class="doc-pages" id="doc-pages">0 hal.</div>
+      <button id="change-doc-btn">Ganti file</button>
+    </div>
+    <div id="messages"></div>
+    <div id="composer">
+      <textarea id="question-input" rows="1" placeholder="Tanya sesuatu tentang dokumen ini..."></textarea>
+      <button id="send-btn">&#8593;</button>
+    </div>
+  </div>
+</main>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+
+const state = {
+  apiKey: localStorage.getItem('gemini_api_key') || '',
+  pages: [],      // array of { pageNumber, text }
+  fileName: '',
+};
+
+const el = {
+  keyInput: document.getElementById('api-key-input'),
+  saveKeyBtn: document.getElementById('save-key-btn'),
+  keyStatus: document.getElementById('key-status'),
+  uploadScreen: document.getElementById('upload-screen'),
+  chatScreen: document.getElementById('chat-screen'),
+  uploadTrigger: document.getElementById('upload-trigger'),
+  fileInput: document.getElementById('file-input'),
+  loadStatus: document.getElementById('load-status'),
+  docName: document.getElementById('doc-name'),
+  docPages: document.getElementById('doc-pages'),
+  changeDocBtn: document.getElementById('change-doc-btn'),
+  messages: document.getElementById('messages'),
+  questionInput: document.getElementById('question-input'),
+  sendBtn: document.getElementById('send-btn'),
+};
+
+function refreshKeyStatus(){
+  if(state.apiKey){
+    el.keyStatus.textContent = 'API key tersimpan di HP ini.';
+    el.keyStatus.classList.add('ok');
+    el.keyInput.value = '';
+    el.keyInput.placeholder = '•••••••••••••••• (tersimpan)';
+  } else {
+    el.keyStatus.textContent = 'Belum ada API key tersimpan.';
+    el.keyStatus.classList.remove('ok');
+  }
+}
+refreshKeyStatus();
+
+el.saveKeyBtn.addEventListener('click', () => {
+  const v = el.keyInput.value.trim();
+  if(!v) return;
+  state.apiKey = v;
+  localStorage.setItem('gemini_api_key', v);
+  refreshKeyStatus();
+});
+
+el.uploadTrigger.addEventListener('click', () => el.fileInput.click());
+
+el.fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  state.fileName = file.name;
+  el.loadStatus.textContent = 'Membaca PDF...';
+  try{
+    await loadPdf(file);
+    el.docName.textContent = state.fileName;
+    el.docPages.textContent = state.pages.length + ' hal.';
+    el.uploadScreen.style.display = 'none';
+    el.chatScreen.style.display = 'flex';
+    addAiMessage(`Siap. "${state.fileName}" sudah kubaca (${state.pages.length} halaman). Silakan tanya apa saja soal isinya.`);
+  }catch(err){
+    console.error(err);
+    el.loadStatus.textContent = 'Gagal membaca file ini. Pastikan formatnya PDF dan coba lagi.';
+  }
+});
+
+el.changeDocBtn.addEventListener('click', () => {
+  state.pages = [];
+  el.messages.innerHTML = '';
+  el.chatScreen.style.display = 'none';
+  el.uploadScreen.style.display = 'flex';
+  el.loadStatus.textContent = '';
+  el.fileInput.value = '';
+});
+
+async function loadPdf(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages = [];
+  for(let i = 1; i <= pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items.map(it => it.str).join(' ').trim();
+    pages.push({ pageNumber: i, text });
+    el.loadStatus.textContent = `Membaca halaman ${i} dari ${pdf.numPages}...`;
+  }
+  state.pages = pages;
+}
+
+function addUserMessage(text){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg user';
+  wrap.innerHTML = `<div class="bubble"></div>`;
+  wrap.querySelector('.bubble').textContent = text;
+  el.messages.appendChild(wrap);
+  el.messages.scrollTop = el.messages.scrollHeight;
+}
+
+function addAiMessage(text, citedPages, isError){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble' + (isError ? ' error' : '');
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  if(citedPages && citedPages.length){
+    const tags = document.createElement('div');
+    tags.className = 'citations';
+    citedPages.forEach(p => {
+      const tag = document.createElement('span');
+      tag.className = 'citation-tag';
+      tag.textContent = 'hal. ' + p;
+      tags.appendChild(tag);
+    });
+    wrap.appendChild(tags);
+  }
+  el.messages.appendChild(wrap);
+  el.messages.scrollTop = el.messages.scrollHeight;
+  return wrap;
+}
+
+function addThinking(){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.innerHTML = `<div class="bubble thinking"><span></span><span></span><span></span></div>`;
+  el.messages.appendChild(wrap);
+  el.messages.scrollTop = el.messages.scrollHeight;
+  return wrap;
+}
+
+el.questionInput.addEventListener('input', () => {
+  el.questionInput.style.height = 'auto';
+  el.questionInput.style.height = Math.min(el.questionInput.scrollHeight, 96) + 'px';
+});
+el.questionInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    handleAsk();
+  }
+});
+el.sendBtn.addEventListener('click', handleAsk);
+
+async function handleAsk(){
+  const question = el.questionInput.value.trim();
+  if(!question) return;
+  if(!state.apiKey){
+    addAiMessage('Tempel dan simpan API key Gemini dulu di bagian atas layar, ya.', null, true);
+    return;
+  }
+  addUserMessage(question);
+  el.questionInput.value = '';
+  el.questionInput.style.height = 'auto';
+  const thinkingEl = addThinking();
+
+  try{
+    const { answer, citedPages } = await askGemini(question, state.pages, state.apiKey);
+    thinkingEl.remove();
+    addAiMessage(answer, citedPages, false);
+  }catch(err){
+    console.error(err);
+    thinkingEl.remove();
+    addAiMessage('Gagal mendapat jawaban. Cek API key atau koneksi internet, lalu coba lagi. Detail: ' + err.message, null, true);
+  }
+}
+
+async function askGemini(question, pages, apiKey){
+  const docText = pages.map(p => `[Halaman ${p.pageNumber}]\n${p.text}`).join('\n\n');
+
+  const systemPrompt = `Kamu adalah asisten yang menjawab pertanyaan HANYA berdasarkan isi dokumen yang diberikan di bawah ini. Ikuti aturan ini:
+1. Jawab singkat, jelas, dan hanya berdasarkan isi dokumen. Jangan mengarang informasi di luar dokumen.
+2. Jika jawabannya tidak ada di dokumen, katakan jawabannya tidak ditemukan di dokumen ini.
+3. Di akhir jawabanmu, WAJIB tambahkan baris baru persis berformat: SUMBER_HALAMAN: x,y,z (nomor halaman tempat kamu menemukan jawaban, dipisah koma, tanpa spasi setelah koma, tanpa kata "halaman"). Jika tidak ada sumber yang relevan, tulis SUMBER_HALAMAN: -
+
+DOKUMEN:
+${docText}`;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: systemPrompt + '\n\nPERTANYAAN:\n' + question }]
+          }
+        ]
+      })
+    }
+  );
+
+  if(!res.ok){
+    const errBody = await res.text();
+    throw new Error(`HTTP ${res.status}: ${errBody.slice(0,200)}`);
+  }
+
+  const data = await res.json();
+  const rawText = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+
+  const match = rawText.match(/SUMBER_HALAMAN:\s*(.*)/i);
+  let citedPages = [];
+  let answer = rawText;
+  if(match){
+    answer = rawText.slice(0, match.index).trim();
+    const raw = match[1].trim();
+    if(raw && raw !== '-'){
+      citedPages = raw.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  return { answer: answer || 'Tidak ada jawaban.', citedPages };
+}
+</script>
+</body>
+</html>
