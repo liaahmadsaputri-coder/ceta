@@ -1637,15 +1637,12 @@ ${toneGuide}`;
   });
   contents.push({ role: 'user', parts: [{ text: question + '\n\n(Ingat: akhiri jawabanmu dengan baris SUMBER_HALAMAN: sesuai instruksi di awal.)' }] });
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents })
-    }
-  );
-
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents })
+  });
+  
   if(res.status === 503 && attempt < 3){
     await new Promise(r => setTimeout(r, attempt * 1200));
     return askGemini(question, pages, apiKey, history, callbacks, attempt + 1);
