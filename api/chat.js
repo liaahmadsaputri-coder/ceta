@@ -1,14 +1,24 @@
-export default async function handler(req, res) {
+export const config = {
+  runtime: 'edge', // Ini kunci utama supaya Vercel bisa streaming SSE tanpa error 404
+};
+
+export default async function handler(req) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    const { contents } = req.body;
+    const { contents } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'API Key belum dikonfigurasi di Vercel.' });
+      return new Response(
+        JSON.stringify({ error: 'API Key belum dikonfigurasi di Vercel.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     const geminiRes = await fetch(
@@ -16,32 +26,30 @@ export default async function handler(req, res) {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents })
+        body: JSON.stringify({ contents }),
       }
     );
 
-    if (!geminiRes.ok || !geminiRes.body) {
+    if (!geminiRes.ok) {
       const errText = await geminiRes.text();
-      return res.status(geminiRes.status).json({ error: errText });
+      return new Response(JSON.stringify({ error: errText }), {
+        status: geminiRes.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
-    const reader = geminiRes.body.getReader();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      res.write(value);
-    }
-    res.end();
-
+    // Mengalirkan (stream) langsung respons dari Gemini ke Frontend
+    return new Response(geminiRes.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
-    console.error('Error server:', error);
-    if (!res.headersSent) {
-      return res.status(500).json({ error: 'Gagal menghubungkan ke AI.' });
-    }
-    res.end();
+    return new Response(
+      JSON.stringify({ error: error.message || 'Gagal menghubungkan ke AI.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
