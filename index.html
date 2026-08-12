@@ -1829,7 +1829,18 @@ ${toneGuide}`;
     }
     throw new Error(`HTTP ${res.status}: ${errBody.slice(0,200)}`);
   }
+  const reader = res.body.getReader();
+             const decoder = new TextDecoder('utf-8');
 
+             while (true) {
+               const { value, done } = await reader.read();
+               if (done) break;
+
+               const chunk = decoder.decode(value, { stream: true });
+               rawBuffer += chunk;
+               
+               // panggil fungsi parser baris-per-baris kamu jika ada di sini
+             }
   // --- Parser baris-per-baris ---
   // Teks yang mengalir dari Gemini diproses baris demi baris (bukan langsung
   // ditampilkan mentah-mentah), karena baris pertama (PROSES_BERPIKIR) dan
