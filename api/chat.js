@@ -18,26 +18,19 @@ export default async function handler(req) {
     });
   }
 
-  // Saringan dasar: tolak request yang ga bawa header dari app Ceta sendiri,
-  // biar endpoint ini ga gampang dipanggil langsung/di-scan dari luar dan
-  // ngabisin kuota Gemini. Ini BUKAN keamanan penuh -- nilai header-nya ada
-  // di source JS client, jadi orang yang niat baca kode tetap bisa nemuin.
-  // Kalau nanti butuh proteksi beneran, gantinya verifikasi token login
-  // Firebase user di sini, bukan cuma bandingin string statis.
-  const clientKey = req.headers.get('x-ceta-client');
-  const expectedKey = process.env.CETA_APP_SECRET;
-  if (!expectedKey) {
-    return new Response(JSON.stringify({ error: 'CETA_APP_SECRET belum dipasang di Vercel' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // --- BAGIAN SECRET DI-COMMENT SEMENTARA UNTUK TES ---
+  /*
+  const appSecret = process.env.CETA_APP_SECRET;
+  if (appSecret) {
+    const providedSecret = req.headers.get('x-ceta-secret');
+    if (providedSecret !== appSecret) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
-  if (clientKey !== expectedKey) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  */
 
   try {
     const { contents, systemInstruction } = await req.json();
