@@ -18,8 +18,6 @@ export default async function handler(req) {
     });
   }
 
-  // --- BAGIAN SECRET DI-COMMENT SEMENTARA UNTUK TES ---
-  /*
   const appSecret = process.env.CETA_APP_SECRET;
   if (appSecret) {
     const providedSecret = req.headers.get('x-ceta-secret');
@@ -30,7 +28,6 @@ export default async function handler(req) {
       });
     }
   }
-  */
 
   try {
     const { contents, systemInstruction } = await req.json();
